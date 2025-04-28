@@ -1,0 +1,24 @@
+[project]
+name = "practic-3"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "K-K-Ju",email = "andrunivermail@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.12"
+ruff = "^0.11.7"
+orjson = "^3.10.16"
+httpx = "^0.28.1"
+pydantic-settings = "^2.9.1"
+uvicorn = "^0.34.2"
+gradio = "^5.27.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
