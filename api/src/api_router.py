@@ -1,7 +1,6 @@
 from fastapi.routing import APIRouter
 from starlette.responses import JSONResponse
 import httpx
-import urllib.parse
 
 from api.src.settings import AppSettings
 
