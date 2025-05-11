@@ -1,6 +1,12 @@
 import gradio as gr
 
-def greet(name):
-    return "Hello " + name + "!"
+def answer(message, _):
+    return f"Hello {message}"
 
-demo = gr.Interface(fn=greet, inputs="textbox", outputs="textbox")
+demo = gr.ChatInterface(
+    answer,
+    type="messages",
+    title="AI chatbot",
+    description="Ask whatever you want",
+    multimodal=False
+)

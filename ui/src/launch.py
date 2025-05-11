@@ -1,4 +1,3 @@
-from ui.main_page import demo
+from main_page import demo
 
-def launch_gradio(): 
-    demo.launch(share=True)
+demo.launch(share=False, show_error=True)

@@ -7,7 +7,10 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.12"
+
+[tool.poetry]
 package-mode = false
+packages = [{include = "api"}, {include = "ui"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -22,3 +25,6 @@ gradio = "^5.27.0"
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+ui = "python3 ui/src/launch.py"

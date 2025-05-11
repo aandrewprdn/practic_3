@@ -2,7 +2,7 @@ from fastapi.routing import APIRouter
 from starlette.responses import JSONResponse
 import httpx
 
-from api.src.settings import AppSettings
+from settings import AppSettings
 
 api_router = APIRouter(prefix="/chat")
 
