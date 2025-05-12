@@ -10,17 +10,18 @@ requires-python = ">=3.12"
 
 [tool.poetry]
 package-mode = false
-packages = [{include = "api"}, {include = "ui"}]
+packages = [{include = "ui"}, {include = "api"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = "^0.115.12"
 ruff = "^0.11.7"
 orjson = "^3.10.16"
-httpx = "^0.28.1"
 pydantic-settings = "^2.9.1"
 uvicorn = "^0.34.2"
 gradio = "^5.27.0"
+httpx = "^0.28.1"
+coloredlogs = "^15.0.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
