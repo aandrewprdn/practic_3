@@ -1,7 +1,8 @@
 ruff:
-	poetry run ruff check --fix
+	poetry run ruff format
 
 run-api:
-	poetry run uvicorn api.src.main:app --port 3000
+	poetry run fastapi dev ./api/src/main.py --port 3000
+
 run-ui:
 	poetry run python ui/src/launch.py

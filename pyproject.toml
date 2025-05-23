@@ -14,7 +14,7 @@ packages = [{include = "ui"}, {include = "api"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-fastapi = "^0.115.12"
+fastapi = {extras = ["standard"], version = "^0.115.12"}
 ruff = "^0.11.7"
 orjson = "^3.10.16"
 pydantic-settings = "^2.9.1"
@@ -22,10 +22,34 @@ uvicorn = "^0.34.2"
 gradio = "^5.27.0"
 httpx = "^0.28.1"
 coloredlogs = "^15.0.1"
+pypdf = "^5.5.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-ui = "python3 ui/src/launch.py"
+[tool.ruff]
+exclude = [
+    ".git",
+    ".pyenv",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "venv",
+]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false

@@ -1,63 +1,117 @@
-import requests
-import math
+import httpx
+import numpy as np
 
-# Sample knowledge base
-documents = [
-    "The Eiffel Tower is located in Paris.",
-    "Python is a popular programming language.",
-    "The Moon orbits the Earth every 27.3 days.",
-    "OpenAI develops powerful AI tools.",
-]
+from endpoints import Endpoints
 
 
-# Simple tokenizer and vectorizer
-def tokenize(text):
-    return text.lower().split()
+def cosine_similarity_vectorized(
+    query_embedding: np.ndarray, stored_embeddings: np.ndarray
+) -> np.ndarray:
+    """
+    Calculates cosine similarity between a query vector and a matrix of stored vectors.
+
+    Args:
+        query_embedding: A 1D NumPy array representing the query vector.
+        stored_embeddings: A 2D NumPy array where each row is a stored embedding vector.
+
+    Returns:
+        A 1D NumPy array of cosine similarity scores.
+    """
+    dot_product = np.dot(stored_embeddings, query_embedding)
+
+    norm_query = np.linalg.norm(query_embedding)
+    norm_stored = np.linalg.norm(stored_embeddings, axis=1)
+
+    zero_norm_mask = (norm_query == 0) | (norm_stored == 0)
+    similarities = np.zeros_like(dot_product, dtype=float)
+
+    valid_mask = ~zero_norm_mask
+    if np.any(valid_mask):
+        denominator = norm_stored[valid_mask] * norm_query
+        denominator[denominator == 0] = 1e-9
+        similarities[valid_mask] = dot_product[valid_mask] / denominator
+
+    # Ensure similarities for zero-norm vectors are explicitly 0.0
+    similarities[zero_norm_mask] = 0.0
+
+    return similarities
 
 
-def vectorize(text, vocab):
-    tokens = tokenize(text)
-    return [tokens.count(word) for word in vocab]
+async def get_embeddings(text: str) -> dict[str, list[float]]:
+    async with httpx.AsyncClient() as client:
+        embedding = await client.post(
+            Endpoints.EMBEDDINGS,
+            timeout=10,
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": "text-embedding-nomic-embed-text-v1.5",
+                "input": text,
+                "stream": False,
+            },
+        )
+
+        return {text: embedding.json()["data"]["embedding"]}
 
 
-def cosine_sim(a, b):
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x**2 for x in a))
-    norm_b = math.sqrt(sum(y**2 for y in b))
-    return dot / (norm_a * norm_b + 1e-8)
+async def find_most_similar(
+    session_hash: str,
+    query_text: str,
+    vector_db: dict[str, list[dict[str, list[float]]]],
+    top_n: int = 1,
+) -> list[tuple[str, float]]:
+    """
+    Performs vector similarity search within a session
 
-def retrieve(query, vocab, doc_vectors, k=2):
-    query_vec = vectorize(query, vocab)
-    sims = [cosine_sim(query_vec, doc_vec) for doc_vec in doc_vectors]
-    top_indices = sorted(range(len(sims)), key=lambda i: sims[i], reverse=True)[:k]
-    return [documents[i] for i in top_indices]
+    Args:
+        session_hash: The hash of the session to search within.
+        query_text: The user's input text.
+        vector_db: vector database.
+        top_n: The number of most similar items to return.
 
+    Returns:
+        A list of tuples, where each tuple contains:
+        (text_chunk, similarity_score, original_embedding_vector_as_list)
+    """
+    if session_hash not in vector_db:
+        print(f"Session {session_hash} not found.")
+        return []
 
-# Function to send request to LM Studio's /v1/chat/completions
-def query_lm_studio(
-    context, question, endpoint="http://127.0.0.1:1234/v1/chat/completions"
-):
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a helpful assistant using provided context.",
-        },
-        {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
-    ]
-    payload = {
-        "model": "deepseek-r1-distill-qwen-7b",
-        "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": -1,
-        "stream": False,
-    }
-    response = requests.post(endpoint, json=payload)
-    return response.json()["choices"][0]["message"]["content"]
+    session_embeddings = vector_db[session_hash]
+    if not session_embeddings:
+        print(f"No embeddings found for session {session_hash}.")
+        return []
 
+    query_embeddings = await get_embeddings(query_text)
+    if not query_embeddings:
+        print("Could not generate embedding for query text.")
+        return []
 
-# RAG pipeline
-def rag_query(question):
-    context = "\n".join(retrieve(question))
-    answer = query_lm_studio(context, question)
-    print(f"Q: {question}\nA: {answer}")
+    query_embedding_np = np.array(list(query_embeddings.values())[0], dtype=np.float32)
 
+    text_chunks = []
+    stored_embeddings_list = []
+
+    for embedding_map in session_embeddings:
+        for text_chunk, stored_embedding in embedding_map.items():
+            text_chunks.append(text_chunk)
+            stored_embeddings_list.append(stored_embedding)
+
+    if not text_chunks:  # No valid embeddings found in the session
+        print(f"No valid embeddings to compare against in session {session_hash}.")
+        return []
+
+    stored_embeddings_np = np.array(stored_embeddings_list, dtype=np.float32)
+
+    similarity_scores = cosine_similarity_vectorized(
+        query_embedding_np, stored_embeddings_np
+    )
+
+    results_with_scores = []
+    for i in range(len(similarity_scores)):
+        results_with_scores.append((similarity_scores[i], text_chunks[i]))
+
+    results_with_scores.sort(key=lambda item: item[0], reverse=True)
+
+    top_results = [(text, score) for score, text in results_with_scores[:top_n]]
+
+    return top_results

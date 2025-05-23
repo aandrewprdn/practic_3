@@ -10,6 +10,7 @@ class CustomFormatter(logging.Formatter):
         formatter = logging.Formatter(self.fmt)
         return formatter.format(record)
 
+
 def init_logger():
     coloredlogs.install()
 
